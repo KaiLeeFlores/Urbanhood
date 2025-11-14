@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Cart</title>
+  <link rel="icon" href="images/" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="brand">
+      <img src="images/logo.png" alt="Urban Hoodies Logo" class="brand-logo">
+      <h1 class="brand-name">URBAN HOODIES</h1>
+    </div>
+    <a href="index.html" class="back-btn">← Continue Shopping</a>
+  </header>
+
+  <main class="cart-page">
+    <section id="cart-items" class="cart-items"></section>
+
+    <aside class="cart-summary">
+      <h2>Order Summary</h2>
+      <div id="summary-details"></div>
+      <hr>
+      <div class="summary-line">
+        <p>Subtotal:</p>
+        <p id="subtotal">$0.00</p>
+      </div>
+      <div class="summary-line">
+        <p>Delivery Fee:</p>
+        <p id="delivery">$50.00</p>
+      </div>
+      <hr>
+      <div class="summary-line total">
+        <h3>Total:</h3>
+        <h3 id="total">$0.00</h3>
+      </div>
+      <button id="checkoutBtn" class="btn dark" disabled>Proceed to Checkout</button>
+    </aside>
+  </main>
+
+  <script>
+    const DELIVERY_FEE = 50;
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const cartContainer = document.getElementById('cart-items');
+    const subtotalEl = document.getElementById('subtotal');
+    const totalEl = document.getElementById('total');
+    const summaryDetails = document.getElementById('summary-details');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+
+    if (cart.length === 0) {
+      cartContainer.innerHTML = `<p class="empty-cart">Your shopping bag is empty.</p>`;
+      document.querySelector('.cart-summary').style.display = 'none';
+    } else {
+      renderCart();
+    }
+
+    function renderCart() {
+      // Save checkbox states
+      const checkedStates = {};
+      document.querySelectorAll('.select-item').forEach(cb => {
+        checkedStates[cb.dataset.index] = cb.checked;
+      });
+
+      cartContainer.innerHTML = '';
+      summaryDetails.innerHTML = '';
+
+      cart.forEach((item, index) => {
+        const lineTotal = item.price * item.quantity;
+        const isChecked = checkedStates[index] ?? true;
+
+        const div = document.createElement('div');
+        div.classList.add('cart-card');
+        div.innerHTML = `
+          <div class="cart-left">
+            <input type="checkbox" class="select-item" data-index="${index}" ${isChecked ? 'checked' : ''}>
+            <img src="images/${item.image}" alt="${item.name}" class="cart-thumb">
+          </div>
+          <div class="cart-details">
+            <h3>${item.name}</h3>
+            <p class="cart-meta">Size: ${item.size}</p>
+            <p class="cart-meta">$${item.price.toFixed(2)} each</p>
+            <div class="cart-controls">
+              <div class="quantity-controls">
+                <button class="qty-btn minus" data-index="${index}">−</button>
+                <span>${item.quantity}</span>
+                <button class="qty-btn plus" data-index="${index}">+</button>
+              </div>
+              <button class="delete-btn" data-index="${index}">Remove</button>
+            </div>
+            <p class="line-total">$${lineTotal.toFixed(2)}</p>
+          </div>
+        `;
+        cartContainer.appendChild(div);
+      });
+
+      attachListeners();
+      updateSummary();
+    }
+
+    function attachListeners() {
+      // Quantity +/−
+      document.querySelectorAll('.qty-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = e.target.dataset.index;
+          if (btn.classList.contains('plus')) {
+            cart[idx].quantity++;
+          } else if (cart[idx].quantity > 1) {
+            cart[idx].quantity--;
+          }
+          localStorage.setItem('cart', JSON.stringify(cart));
+          renderCart();
+        });
+      });
+
+      // Remove item
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = e.target.dataset.index;
+          cart.splice(idx, 1);
+          localStorage.setItem('cart', JSON.stringify(cart));
+          renderCart();
+        });
+      });
+
+      // Checkbox update
+      document.querySelectorAll('.select-item').forEach(cb => {
+        cb.addEventListener('change', updateSummary);
+      });
+    }
+
+    function updateSummary() {
+      const selected = [...document.querySelectorAll('.select-item')]
+        .filter(cb => cb.checked)
+        .map(cb => cart[cb.dataset.index]);
+
+      summaryDetails.innerHTML = '';
+      let subtotal = 0;
+
+      selected.forEach(item => {
+        const lineTotal = item.price * item.quantity;
+        subtotal += lineTotal;
+        const p = document.createElement('p');
+        p.textContent = `${item.name} (${item.size}) ×${item.quantity}`;
+        summaryDetails.appendChild(p);
+      });
+
+      const total = selected.length > 0 ? subtotal + DELIVERY_FEE : 0;
+      subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+      totalEl.textContent = `$${total.toFixed(2)}`;
+
+      checkoutBtn.disabled = selected.length === 0;
+      checkoutBtn.style.opacity = selected.length === 0 ? "0.5" : "1";
+
+      // Save selected items temporarily for checkout
+      checkoutBtn.onclick = () => {
+        if (selected.length > 0) {
+          localStorage.setItem('checkout_cart', JSON.stringify(selected));
+          window.location.href = 'checkout.html';
+        }
+      };
+    }
+  </script>
+</body>
+</html>

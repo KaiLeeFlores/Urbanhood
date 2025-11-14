@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Checkout</title>
+  <link rel="icon" href="images/logo.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <a href="cart.html" class="back-btn">← Back</a>
+    <h1>Checkout</h1>
+  </header>
+
+  <div class="checkout">
+    <!-- LEFT SIDE: DELIVERY FORM -->
+    <form id="checkout-form">
+      <h2>Delivery Information</h2>
+      <label>Name:</label>
+      <input type="text" id="name" required>
+
+      <label>Email:</label>
+      <input type="email" id="email" required>
+
+      <label>Phone:</label>
+      <input type="text" id="phone" required>
+
+      <label>Address:</label>
+      <textarea id="address" required></textarea>
+
+      <label>Payment Method:</label>
+      <select id="payment" required>
+        <option value="">Select...</option>
+        <option value="cod">Cash on Delivery</option>
+        <option value="gcash">GCash</option>
+      </select>
+
+      <button type="submit" class="btn dark">Place Order</button>
+    </form>
+
+    <!-- RIGHT SIDE: ORDER SUMMARY -->
+    <div class="summary">
+      <h2>Order Summary</h2>
+      <div id="summary-list"></div>
+      <hr>
+      <div class="summary-line">
+        <p>Subtotal:</p>
+        <p id="summary-subtotal">$0.00</p>
+      </div>
+      <div class="summary-line">
+        <p>Delivery Fee:</p>
+        <p id="summary-delivery">$0.00</p>
+      </div>
+      <hr>
+      <div class="summary-line total">
+        <h3>Total:</h3>
+        <h3 id="summary-total">$0.00</h3>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DELIVERY_FEE = 50;
+    const checkoutItems = JSON.parse(localStorage.getItem('checkout_cart')) || [];
+    const list = document.getElementById('summary-list');
+    let subtotal = 0;
+
+    // SHOW CHECKOUT ITEMS ONLY
+    checkoutItems.forEach(item => {
+      const lineTotal = item.price * item.quantity;
+      subtotal += lineTotal;
+
+      const div = document.createElement('div');
+      div.classList.add('summary-item');
+      div.innerHTML = `
+        <div class="summary-item-row">
+          <img src="images/${item.image}" alt="${item.name}">
+          <div>
+            <p><strong>${item.name}</strong> (${item.size})</p>
+            <p>Qty: ${item.quantity}</p>
+            <p>$${lineTotal.toFixed(2)}</p>
+          </div>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+
+    // TOTALS
+    const total = subtotal + DELIVERY_FEE;
+    document.getElementById('summary-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('summary-delivery').textContent = `$${DELIVERY_FEE.toFixed(2)}`;
+    document.getElementById('summary-total').textContent = `$${total.toFixed(2)}`;
+
+    // SUBMIT
+    document.getElementById('checkout-form').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value;
+      const address = document.getElementById('address').value;
+      const payment = document.getElementById('payment').value;
+
+      if (!name || !address || !payment) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+
+      // Remove purchased items from full cart
+      let fullCart = JSON.parse(localStorage.getItem('cart')) || [];
+      const remainingCart = fullCart.filter(cartItem =>
+        !checkoutItems.some(checked =>
+          checked.id === cartItem.id && checked.size === cartItem.size
+        )
+      );
+
+      localStorage.setItem('cart', JSON.stringify(remainingCart));
+
+      alert(`✅ Thank you, ${name}! Your order has been placed.\nTotal: $${total.toFixed(2)} (includes delivery fee)`);
+
+      localStorage.removeItem('checkout_cart');
+      window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
